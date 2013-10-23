@@ -1,0 +1,27 @@
+#!/bin/bash
+# Author llc_xyz@qq.com
+# just convert wav to mp3
+# change the script to suport more format
+#
+#/usr/bin/wav2mp3 ^{CALLFILENAME} ^{MIXMON_DIR} ^{MIXMON_FORMAT}
+#
+LAME=/usr/bin/lame
+
+echo  convert filenam:  $2$1.$3
+
+#elastix monitor mixed filename
+CALLFILENAME="$1"
+MIXMON_DIR="$2"
+MIXMON_FORMAT="$3"
+
+MIXMON_CALLFILENAME=$MIXMON_DIR$CALLFILENAME
+
+#echo $MIXMON_CALLFILENAME
+
+#check filename exits.
+test ! -r $MIXMON_CALLFILENAME.wav && exit 21
+
+$LAME -S -V7 -B24 $MIXMON_CALLFILENAME.wav $MIXMON_CALLFILENAME.mp3
+
+#test if mp3 was created successfully.
+test -r $MIXMON_CALLFILENAME.mp3 && rm $MIXMON_CALLFILENAME.wav

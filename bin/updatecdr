@@ -1,0 +1,36 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use DBI;
+
+
+my ($db, $host, $user, $pass) = ('asteriskcdrdb', 'localhost', 'asteriskuser', 'admin');
+
+while (1) {
+	my $dbh = DBI->connect("DBI:mysql:database=$db;host=$host",
+								  "$user", "$pass", {RaiseError => 1, AutoCommit => 1});
+
+	my $sth = $dbh->prepare("select * from cdr where recordingfile = '' and userfield <> ''  and userfield not like '%delete' ");
+	$sth    -> execute();
+
+	my $sth2 = $dbh->prepare("update cdr set recordingfile=? and userfield=? where uniqueid=?");
+	while (my $row = $sth->fetchrow_hashref()) {
+		my $filename = $row->{userfield};
+		$filename   =~ s/audio://g;
+		$filename   =~ s/\.wav//g;
+		my $recordingfile = "/var/spool/asterisk/monitor/$filename.mp3";		
+		my $userfield        = "audio:$filename.mp3";
+
+		if (!-e $recordingfile) {
+			$recordingfile = "/var/spool/asterisk/monitor/$filename.wav";		
+			$userfield     = "audio:$filename.wav";
+		}
+
+		printf("set %s to recordingfile=%s and userfield=%s\n", $row->{uniqueid}, $recordingfile, $userfield);
+		$sth2->execute($recordingfile, $userfield, $row->{uniqueid});
+	}
+
+	sleep 5;
+}
+
