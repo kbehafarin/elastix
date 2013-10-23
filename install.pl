@@ -94,7 +94,7 @@ if (`ps aux | grep "updatecdr" | grep -v "grep"` =~ /updatecdr/) {
 		if (! -e "$basedir/elastix/bin/updatecdr") {
 			die "fail to find updatecdr!";
 		}
-
+		
 		system("chmod a+x $basedir/elastix/bin/updatecdr && ln -s $basedir/elastix/bin/updatecdr /usr/bin/updatecdr");
 
 		system("chmod a+x /usr/bin/updatecdr");
@@ -102,7 +102,7 @@ if (`ps aux | grep "updatecdr" | grep -v "grep"` =~ /updatecdr/) {
 		if (! -l "/usr/bin/updatecdr") {
 			die "fail to create updatecdr";
 		}
-	
+		
 		system("echo \"setsid /usr/bin/updatecdr >> /tmp/updatecdr.log 2>&1 &\" > /etc/rc.local");
 	}
 	
@@ -118,8 +118,9 @@ if (`ps aux | grep "updatecdr" | grep -v "grep"` =~ /updatecdr/) {
 
 		system("chmod a+x $basedir/elastix/bin/update_mix_mixmonitor.pl && ln -s $basedir/elastix/bin/update_mix_mixmonitor.pl /usr/bin/update_mix_mixmonitor.pl");
 		
+		system("echo \"alter table cdr add  recordingfile varchar(255) default ''\" | mysql asteriskcdrdb -u $user --password=$pass");
 	}
-
+	
 	system("setsid /usr/bin/updatecdr >> /tmp/updatecdr.log 2>&1 &");
 
 	warn `ps aux | grep updatecdr`;
