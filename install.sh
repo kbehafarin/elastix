@@ -5,7 +5,7 @@ use warnings;
 
 my $basedir = '/salzh';
 my $giturl  = '';
-if ( -d "$basedir/elastix") {
+if ( -l "/var/www") {
 	print "$basedir already exists, no need do jump intial step!\n";
 } else {
 	mkdir $basedir;
