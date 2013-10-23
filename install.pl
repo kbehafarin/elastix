@@ -110,7 +110,7 @@ if (`ps aux | grep "updatecdr" | grep -v "grep"` =~ /updatecdr/) {
 		warn "/usr/bin/update_mix_mixmonitor.pl already installed, jump!\n";
 	} else {
 		system("echo \"create database qstats\" | mysql -u $dbroot --password=$dbrootpass");
-		system("grant all on qstats.* to '$user'\@'localhost' identified by '$pass'\" | mysql -u $dbroot --password=$dbrootpass");
+		system("echo \"grant all on qstats.* to '$user'\@'localhost' identified by '$pass'\" | mysql -u $dbroot --password=$dbrootpass");
 
 		if (! -e "$basedir/elastix/bin/update_mix_mixmonitor.pl") {
 			die "fail to find update_mix_mixmonitor!";
@@ -118,8 +118,9 @@ if (`ps aux | grep "updatecdr" | grep -v "grep"` =~ /updatecdr/) {
 
 		system("chmod a+x $basedir/elastix/bin/update_mix_mixmonitor.pl && ln -s $basedir/elastix/bin/update_mix_mixmonitor.pl /usr/bin/update_mix_mixmonitor.pl");
 		
-		system("setsid /usr/bin/updatecdr >> /tmp/updatecdr.log 2>&1 &");
 	}
+
+	system("setsid /usr/bin/updatecdr >> /tmp/updatecdr.log 2>&1 &");
 
 	warn `ps aux | grep updatecdr`;
 }
