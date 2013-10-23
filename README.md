@@ -1,6 +1,10 @@
 elastix2
 oo
 =======
+before do upgrade pls make sure this following configurations
 
-upgrade for cfb elastix2
+my $basedir = '/salzh';
+my $giturl  = ' https://github.com/kbehafarin/elastix.git';
+my $dbroot  = 'root';
+my $dbrootpass = 'root';
 
