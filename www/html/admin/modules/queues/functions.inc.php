@@ -385,7 +385,9 @@ function queues_get_config($engine) {
 						$ext->add('ext-queues', $exten, '', new ext_setvar('__ALERT_INFO', str_replace(';', '\;', $alertinfo)));
 					}
 
-					$ext->add('ext-queues', $exten, '', new ext_setvar('MONITOR_FILENAME','/var/spool/asterisk/monitor/q${EXTEN}-${STRFTIME(${EPOCH},,%Y%m%d-%H%M%S)}-${UNIQUEID}'));
+#					$ext->add('ext-queues', $exten, '', new ext_setvar('MONITOR_FILENAME','/var/spool/asterisk/monitor/q${EXTEN}-${STRFTIME(${EPOCH},,%Y%m%d-%H%M%S)}-${UNIQUEID}'));
+					$ext->add('ext-queues', $exten, '', new $ext_setvar('__MONITOR_FILENAME','/var/spool/asterisk/monitor/q${EXTEN}-${STRFTIME(${EPOCH},,%Y%m%d-%H%M%S)}-${UNIQUEID}'));       $ext->add('ext-queues', $exten, '', new ext_setvar('__MONITOR_EXEC','/usr/bin/update_mix_mixmonitor.pl ^{UNIQUEID} ^{MIXMONITOR_FILENAME}'));
+
 					$joinannounce_id = (isset($q['joinannounce_id'])?$q['joinannounce_id']:'');
 					if($joinannounce_id) {
 						$joinannounce = recordings_get_file($joinannounce_id);
