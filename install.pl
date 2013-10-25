@@ -126,3 +126,23 @@ if (`ps aux | grep "updatecdr" | grep -v "grep"` =~ /updatecdr/) {
 	warn `ps aux | grep updatecdr`;
 }
 
+################################################################
+#This is upgrade for installing mangoanalytics on all PBX
+#
+#
+#################################################################
+
+if (`ps aux | grep "django-tarificador" | grep -v "grep"` =~ /django\-tarificador/) {
+	warn "mangoanalytics already installed, INGORE!\n";
+} else {
+	system("cd $basedir && git clone https://github.com/nextortelecom/mangoanalytics.git");
+	if (! -d "$basedir/mangoanalytics") {
+		die "fail to get codes from mangoanalytics!\n";
+	}
+
+	system ("yum -y mysql-devel");
+	my $p = `uname -p`;
+	chomp $p;
+	system ("cd $basedir/mangoanalytics/rpm-elastix/RPMS/$p/ && rpm -ivh elastix-python2.7.5-alternate-2.7.5-1.$p.rpm  elastix-python2.7-setuptools-1.1.6-1.$p.rpm elastix-python2.7-distribute-0.6.28-1.$p.rpm");
+	system ("cd $basedir/mangoanalytics/rpm-elastix/RPMS/noarch && rpm -ivh mangoanalytics-1.0.2-1.noarch.rpm");
+}
