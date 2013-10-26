@@ -140,9 +140,18 @@ if (`ps aux | grep "django-tarificador" | grep -v "grep"` =~ /django\-tarificado
 		die "fail to get codes from mangoanalytics!\n";
 	}
 
-	system ("yum -y mysql-devel");
+	system ("yum -y install mysql-devel");
 	my $p = `uname -p`;
 	chomp $p;
 	system ("cd $basedir/mangoanalytics/rpm-elastix/RPMS/$p/ && rpm -ivh elastix-python2.7.5-alternate-2.7.5-1.$p.rpm  elastix-python2.7-setuptools-1.1.6-1.$p.rpm elastix-python2.7-distribute-0.6.28-1.$p.rpm");
 	system ("cd $basedir/mangoanalytics/rpm-elastix/RPMS/noarch && rpm -ivh mangoanalytics-1.0.2-1.noarch.rpm");
+}
+
+################################################################
+#This is patch for elastix compile_dir not writable issue
+#
+#
+#################################################################
+{
+	system ("chmod a+wrx $basedir/elastix/www/html/var/ -R");
 }
