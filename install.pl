@@ -155,3 +155,23 @@ if (`ps aux | grep "django-tarificador" | grep -v "grep"` =~ /django\-tarificado
 {
 	system ("chmod a+wrx $basedir/elastix/www/html/var/ -R");
 }
+
+
+################################################################
+#install fail2ban on elastix servers
+#
+#
+#################################################################
+if (`ps aux | grep "fail2ban" | grep -v "grep"` =~ /fail2ban\-server/) {
+	warn "mangoanalytics already installed, INGORE!\n";
+} else {
+	system("yum -y install fail2ban");
+	system("mv /etc/fail2ban /etc/fail2ban.init && ln -s /salzh/elastix/fail2ban /etc/fail2ban");
+	
+
+	system("service fail2ban restart");
+
+	if (`ps aux | grep "fail2ban" | grep -v "grep"` =~ /fail2ban\-server/) {
+		die "fail to install fail2ban, pls check it!\n";
+	}
+}
