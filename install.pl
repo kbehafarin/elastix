@@ -26,7 +26,7 @@ if ( -l "/var/www") {
 	die "/etc/asterisk" unless -l "/etc/asterisk";
 }
 
-system ("cd $basedir/elastix && git pull");
+system ("cd $basedir/elastix && git pull && pkill yum");
 
 ################################################################
 #This is upgrade for converting recording from wav to mp3 format
