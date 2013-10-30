@@ -2490,6 +2490,9 @@ function core_get_config($engine) {
       if ($has_keepcid_cnum) {
         $ext->add($context, $exten, '', new ext_execif('$["${OUTKEEPCID_${ARG1}}" = "cnum"]', 'Set', 'CALLERID(name)='));
       }
+			$ext->add($context, $exten, 'exit', new ext_macroexit());
+
+
 			$ext->add($context, $exten, 'NOO', new ext_set('CALLERID(all)', '${DB(911/dest)}'));
 
       // Combined from-zpatel / from-dahdi and all macros now from-dahdi-channum
