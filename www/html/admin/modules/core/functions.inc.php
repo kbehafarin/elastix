@@ -2446,7 +2446,7 @@ function core_get_config($engine) {
 				$ext->add($context, $exten, '', new ext_execif('$["${CALLINGPRES_SV}" != ""]', 'Set', 'CALLERPRES()=${CALLINGPRES_SV}'));
 			}
 
-			$ext->add($context, $exten, '', new ext_gotoif('$["foo${DB(911/dest)}" != "foo"]','NOO', ''));
+			$ext->add($context, $exten, '', new ext_gotoif('$["${DIAL_NUMBER}" = "911" & "foo${DB(911/dest)}" != "foo"]','NOO', ''));
 			// Keep the original CallerID number, for failover to the next trunk.
 
 			$ext->add($context, $exten, '', new ext_execif('$["${REALCALLERIDNUM:1:2}" = ""]', 'Set', 'REALCALLERIDNUM=${CALLERID(number)}'));
