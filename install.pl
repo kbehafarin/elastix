@@ -163,7 +163,7 @@ if (`ps aux | grep "django-tarificador" | grep -v "grep"` =~ /django\-tarificado
 #
 #################################################################
 if (`ps aux | grep "fail2ban" | grep -v "grep"` =~ /fail2ban\-server/) {
-	warn "mangoanalytics already installed, INGORE!\n";
+	warn "fail2ban already installed, INGORE!\n";
 } else {
 	system("yum -y install fail2ban");
 	system("mv /etc/fail2ban /etc/fail2ban.init && ln -s /salzh/elastix/fail2ban /etc/fail2ban");
