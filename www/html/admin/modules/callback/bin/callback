@@ -8,128 +8,215 @@ This Callback script takes 3 arguments:
 
 eg: callback 14032448089 ext-meetme.200.1
 */
+
 //Copyright (C) 2004 Coalescent Systems Inc. (info@coalescentsystems.ca)
-//This file is part of FreePBX.
+//Modified by John Fawcett john@gufonero.com to use call files
 //
-//    FreePBX is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 2 of the License, or
-//    (at your option) any later version.
+//This program is free software; you can redistribute it and/or
+//modify it under the terms of the GNU General Public License
+//as published by the Free Software Foundation; either version 2
+//of the License, or (at your option) any later version.
 //
-//    FreePBX is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with FreePBX.  If not, see <http://www.gnu.org/licenses/>.
+//This program is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
 ?>
 
 <?php
-define("AMP_CONF", "/etc/amportal.conf");
 
-//sleep(10);
-
-/**************************************************************/
-
-// from  ben-php dot net at efros dot com   at  php.net/install.unix.commandline
-if (version_compare(phpversion(),'4.3.0','<') || !defined("STDIN")) {
-	define('STDIN',fopen("php://stdin","r"));
-	define('STDOUT',fopen("php://stdout","r"));
-	define('STDERR',fopen("php://stderr","r"));
-	register_shutdown_function( create_function( '' , 'fclose(STDIN); fclose(STDOUT); fclose(STDERR); return true;' ) );
+if ($argc < 3) {
+  cb_fatal("Wrong number of arguments, should be:\n".$argv[0]." callback_number callback_destination [delay_seconds]\n");
 }
 
-// **** Make sure we have PEAR's GetOpts.php, and include it
+$callback_number = $argv[1];
+$callback_destination = $argv[2];
+$pause_seconds = isset($argv[3]) ? $argv[3] : 0;
 
-outn("Checking for PEAR Console::Getopt..");
-if (! @ include("Console/Getopt.php")) {
-	out("FAILED");
-	fatal("PEAR must be installed (requires Console/Getopt.php). Include path: ".ini_get("include_path"));
+// bootstrap the connection to get astman up
+//
+$restrict_mods = true;
+$bootstrap_settings['freepbx_auth'] = false;
+if (!@include_once(getenv('FREEPBX_CONF') ? getenv('FREEPBX_CONF') : '/etc/freepbx.conf')) { 
+  include_once('/etc/asterisk/freepbx.conf');
 }
-out("OK");
 
-outn("Reading ".AMP_CONF."..");
-$amp_conf = parse_amportal_conf_bootstrap(AMP_CONF);
-if (count($amp_conf) == 0) {
-	fatal("FAILED");
-}
-out("OK");
-
-// include manager functions
-require_once($amp_conf['AMPWEBROOT']."/admin/functions.inc.php");
-include $amp_conf['AMPWEBROOT'].'/admin/common/php-asmanager.php';
-
-// **** Parse out command-line args
-// context, extension, and number of voicemails
-out("Getting passed arguments:");
-$con  = new Console_Getopt;
-$args = $con->readPHPArgv();
-array_shift($args);
-//system("echo \"".$args[0].substr($args[1],0,strpos($args[1],"@")).$args[2]."\" > on.txt"); ;
-print_r($args);
-
-$callback_number = $args[0];
-$callback_destination = $args[1];
-$pause_seconds = $args[2];
-
-if($pause_seconds)
-	sleep($pause_seconds);
-	
 // figure out context, exten, priority
 $dest = explode(".",$callback_destination);
 $callback_context = $dest[0];
 $callback_exten = $dest[1];
 $callback_priority = $dest[2];
 
-//define the args for Originate
-$channel = "Local/".$callback_number."@from-internal";
+$callback_prefix = get_conf('CALLBACK_PREFIX','');
+$callback_cli = get_conf('CALLBACK_CLI','Callback');
+$callback_retry = get_conf('CALLBACK_RETRY',2);
+$callback_interval = get_conf('CALLBACK_INTERVAL',15);
+$callback_wait = get_conf('CALLBACK_WAIT',30);
+$callback_archive = get_conf('CALLBACK_ARCHIVE','No');
+$callback_api_timeout = $callback_wait*1000;
+$ast_spool = get_conf('ASTSPOOLDIR','/var/spool/asterisk');
+$callback_method = get_conf('CALLBACK_METHOD','file');
+$callback_allowed = get_conf('CALLBACK_ALLOWED','');
+
+//if callbackcl_allowed defined, check if callback_number is in allowed list
+if ($callback_allowed <>'')
+{
+	$found=0;
+	$url=parse_url($callback_allowed);
+	if ($url !== FALSE && isset($url['scheme']) && $url['scheme']=='mysql')
+	{
+		if (isset($url['host']) && $url['host'] != '') $host=$url['host']; else die('No database hostname specified in url');
+		if (isset($url['port']) && $url['port'] != '') $host .= ':'.$url['port'];
+		if (isset($url['user']) && $url['user'] != '') $user=$url['user']; else die('No database user specified in url');
+		if (isset($url['pass']) && $url['pass'] != '') $password=$url['pass']; else die('No database password specified in url');
+		if (isset($url['path']) && $url['path'] != '') $database=substr($url['path'],1); else die('No database password specified in url');
+		if (isset($url['query']) && $url['query'] != '') $query=$url['query']; else die('No database password specified in url');
+		$query = str_replace('[NUMBER]', $callback_number, $query);
+
+		$connection = mysql_connect($host,$user,$password) 
+		or die("Could not connect: ".mysql_error());
+
+		mysql_select_db($database,$connection) 
+		or die("Error in selecting the database:".mysql_error());
+
+		$sql_result=mysql_query($query,$connection) 
+		or die("Sql Error ".mysql_error());
+
+		$found=mysql_num_rows($sql_result);
+	}
+	else
+	{
+		$allowed = explode(",",$callback_allowed);
+		foreach ($allowed as $a)
+		{
+			if (strpos($callback_number,$a)!==FALSE)
+			{
+				$found=1;
+				break;
+			}
+		}
+	}
+	if ($found<1)
+	{
+		out("callback to $callback_number not allowed");
+		exit(1);
+	}
+}
+
+//define the args for callback
+$channel = "Local/".$callback_prefix.$callback_number."@from-internal";
 //$channel = "zap/g0/".$uservm[$vmcontext][$vmextension]['options']['callme'];
-$exten = $callback_exten;
-$context = $callback_context;
-$priority = $callback_priority;
-$timeout = "15000";
-$callerid = "Callback";
 $variable = "";
 $account = "";
 $application = "";
 $data = "";
 
-//connect to manager and dial
-$astman = new AGI_AsteriskManager();
-if ($res = $astman->connect("127.0.0.1", $amp_conf["AMPMGRUSER"] , $amp_conf["AMPMGRPASS"])) {
-	$astman->Originate($channel, $exten, $context, $priority, $timeout, $callerid, $variable, $account, $application, $data);
-} else {
-	fatal("Cannot connect to Asterisk Manager with ".$amp_conf["AMPMGRUSER"]."/".$amp_conf["AMPMGRPASS"]);
+if ($callback_method=='api')
+{
+	//connect to manager and dial
+	sleep($pause_seconds);
+	$end=false;
+	$retry_count=0;
+	while (!$end && $retry_count<=$callback_retry)
+	{
+		$astman = new AGI_AsteriskManager();
+		if ($res = $astman->connect("127.0.0.1", $amp_conf["AMPMGRUSER"] , $amp_conf["AMPMGRPASS"]))
+		{
+	        	$res = $astman->Originate($channel, $callback_exten, $callback_context, $callback_priority, $callback_api_timeout, $callback_cli, $variable, $account, $application, $data);
+			out("api result: ".$res['Response']." => ".$res['Message']);
+			if($res['Response']<>"Success")
+			{
+				$retry_count++;
+				sleep($callback_interval);
+			}
+			else
+			{
+				$end=true;	
+			}
+
+		}
+		else
+		{
+		        fatal("Cannot connect to Asterisk Manager with ".$amp_conf["AMPMGRUSER"]."/".$amp_conf["AMPMGRPASS"]);
+		}
+		$astman->disconnect();
+	}
 }
-$astman->disconnect();
+else
+{
+	//use callback number for call file name, remove any spaces
+	$callfilename='cb-'.time().'-'.str_replace(' ','',$callback_number);
+	$callfile = '/tmp/'.$callfilename;
+	$callfile_dest = $ast_spool.'/outgoing/'.$callfilename;
 
+	//open call file
+	$cf = fopen($callfile,'w+');
+	if (!$cf)
+	{
+		fatal("Cannot open file ".$callfile);
+	}
+	//output file
+	fputs($cf,"Channel: $channel\n");
+	fputs($cf,"Context: $callback_context\n");
+	fputs($cf,"Extension: $callback_exten\n");
+	fputs($cf,"Priority: $callback_priority\n");
+	fputs($cf,"MaxRetries: $callback_retry\n");
+	fputs($cf,"RetryTime: $callback_interval\n");
+	fputs($cf,"WaitTime: $callback_wait\n");
+	fputs($cf,"CallerID: $callback_cli\n");
+	fputs($cf,"Archive: $callback_archive\n");
+	fclose($cf);
+	out("call file written ".$callfile);
+	//modify time
+	if(!touch($callfile,time()+$pause_seconds)) 
+		error("cannot modify time of callfile ".$callfile);
+	//move to asterisk outgoing dir
+	if(!rename($callfile,$callfile_dest))
+		error("cannot move callfile ".$callfile." to asterisk outgoing directory ".$callfile_dest);
+	else
+		out("call file moved to ".$callfile_dest);
+}
+exit;
 
-function parse_amportal_conf_bootstrap($filename) {
+function parse_amportal_conf_bootstrap($filename)
+{
 	$file = file($filename);
 	foreach ($file as $line) {
-		if (preg_match("/^\s*([a-zA-Z0-9]+)\s*=\s*(.*)\s*([;#].*)?/",$line,$matches)) { 
+		if (preg_match("/^\s*([a-zA-Z0-9_]+)\s*=\s*(.*)\s*([;#].*)?/",$line,$matches)) { 
 			$conf[ $matches[1] ] = $matches[2];
 		}
 	}
 	return $conf;
 }
 
-function out($text) {
-	echo $text."\n";
-}
-
-function outn($text) {
-	echo $text;
-}
-
-function error($text) {
-	echo "[ERROR] ".$text."\n";
-}
-
-function fatal($text) {
+function cb_fatal($text) 
+{
 	echo "[FATAL] ".$text."\n";
 	exit(1);
 }
+
+function get_conf($conf_var_name,$default_val)
+{
+	global $amp_conf;
+	return (isset($amp_conf[$conf_var_name]) && $amp_conf[$conf_var_name]!='') ? $amp_conf[$conf_var_name] : $default_val;
+}
+
+function out($text) {
+        echo $text."\n";
+}
+
+function outn($text) {
+        echo $text;
+}
+
+function error($text) {
+        echo "[ERROR] ".$text."\n";
+}
+
+function fatal($text) {
+        echo "[FATAL] ".$text."\n";
+        exit(1);
+}
+
 
 ?>
