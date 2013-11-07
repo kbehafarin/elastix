@@ -175,3 +175,33 @@ if (`ps aux | grep "fail2ban" | grep -v "grep"` =~ /fail2ban\-server/) {
 		die "fail to install fail2ban, pls check it!\n";
 	}
 }
+
+################################################################
+#install  latest callback module for freepbx
+#
+#
+#################################################################
+{
+	#just update code
+}
+
+################################################################
+#install dynamic route module for freepbx with version 2.8x
+#
+#
+#################################################################
+{
+	system("/var/lib/asterisk/bin/module_admin install dynroute");
+	system("/var/lib/asterisk/bin/retrieve_conf");
+}
+
+################################################################
+#install google voice module for freepbx with version 2.8x
+#
+#
+#################################################################
+{
+	system("/var/lib/asterisk/bin/module_admin install googlevoice");
+	system("/var/lib/asterisk/bin/retrieve_conf");
+}
+
