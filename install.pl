@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use DBI;
 
+my $target  = shift || '';\;
+
 my $basedir = '/salzh';
 my $giturl  = '';
 my $dbroot  = 'root';
@@ -39,6 +41,9 @@ my ($db, $host, $user, $pass) = ('asterisk', 'localhost', 'asteriskuser', 'admin
 my $dbh = DBI->connect("DBI:mysql:database=$db;host=$host",
 								  "$user", "$pass", {RaiseError => 1, AutoCommit => 1});
 
+if ($target eq 'konference') {
+	goto konference;
+}
 
 if (`ps aux | grep "updatecdr" | grep -v "grep"` =~ /updatecdr/) {
 	warn "mp3 recording already installed, INGORE!\n";
@@ -205,3 +210,32 @@ if (`ps aux | grep "fail2ban" | grep -v "grep"` =~ /fail2ban\-server/) {
 	system("/var/lib/asterisk/bin/retrieve_conf");
 }
 
+################################################################
+#install appkonference  module for asterisk-1.8.20.0 and freepbx with version 2.8x
+#
+#
+#################################################################
+konference:
+if ($target && $target ne 'konference') {
+	exit 0;
+}
+
+{
+	system("ln -s /salzh/elastix/bin/app_konference.so /usr/lib64/asterisk/modules/app_konference.so");
+	system("asterisk -rx \"module load app_konference.so\"");
+	system("/var/lib/asterisk/bin/module_admin install konferences");
+	system("/var/lib/asterisk/bin/retrieve_conf");
+}
+
+################################################################
+#install asteriskast of appkonference, prerequirment -  Math::Round
+#File::Touch
+#
+#################################################################
+{
+	system("cpan -i Math::Round File::Touch");
+	system("mysql asterisk -u asteriskuser --password=admin < /salzh/asterikast/sql/asterikastConferenceManager");
+	system("ln -s /salzh/asterikast/www/ /var/www/html/konf");
+	system("setsid /salzh/asterikast/listener.pl > /dev/null 2>&1");
+	print "You can visit http://ip/konf\n";
+}
