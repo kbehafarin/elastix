@@ -235,6 +235,7 @@ if ($target && $target ne 'konference') {
 	system("asterisk -rx \"module load app_konference.so\"");
 	system("/var/lib/asterisk/bin/module_admin install konferences");
 	system("/var/lib/asterisk/bin/retrieve_conf");
+	system("asterisk -rx \"reload\"");
 }
 
 ################################################################
@@ -244,8 +245,8 @@ if ($target && $target ne 'konference') {
 #################################################################
 {
 	system("cpan -i Math::Round File::Touch");
-	system("mysql asterisk -u asteriskuser --password=admin < /salzh/elastix/asterikast/sql/asterikastConferenceManager");
+	system("mysql asterisk -u asteriskuser --password=admin < /salzh/elastix/asterikast/sql/asterikastConferenceManager.sql");
 	system("ln -s /salzh/elastix/asterikast/www/ /var/www/html/konf");
-	system("setsid /salzh/elastix/asterikast/listener.pl > /dev/null 2>&1");
+	system("setsid /salzh/elastix/asterikast/listener.pl > /dev/null 2>&1 &");
 	print "You can visit http://ip/konf\n";
 }
