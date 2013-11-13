@@ -245,7 +245,7 @@ if ($target && $target ne 'konference') {
 #################################################################
 {
 	system("cpan -i Math::Round File::Touch");
-	system("mysql asterisk -u asteriskuser --password=admin < /salzh/elastix/asterikast/sql/asterikastConferenceManager.sql");
+	system("mysql asterisk -u asteriskuser --password=admin < /salzh/elastix/asterikast/sql/asterikastConferenceManager.db");
 	system("ln -s /salzh/elastix/asterikast/www/ /var/www/html/konf");
 	system("setsid /salzh/elastix/asterikast/listener.pl > /dev/null 2>&1 &");
 	print "You can visit http://ip/konf\n";
