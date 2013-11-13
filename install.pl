@@ -4,7 +4,17 @@ use strict;
 use warnings;
 use DBI;
 
-my $target  = shift || '';\;
+my $target  = shift || '';
+
+if ($target eq 'help') {
+	print <<EOC;
+help: print his msg
+konference: install konference
+default: install all
+EOC
+
+	exit 0;
+}
 
 my $basedir = '/salzh';
 my $giturl  = '';
@@ -187,7 +197,7 @@ if (`ps aux | grep "fail2ban" | grep -v "grep"` =~ /fail2ban\-server/) {
 #
 #################################################################
 {
-	#just update code
+	print "just update code to install callback\n";
 }
 
 ################################################################
@@ -234,8 +244,8 @@ if ($target && $target ne 'konference') {
 #################################################################
 {
 	system("cpan -i Math::Round File::Touch");
-	system("mysql asterisk -u asteriskuser --password=admin < /salzh/asterikast/sql/asterikastConferenceManager");
-	system("ln -s /salzh/asterikast/www/ /var/www/html/konf");
-	system("setsid /salzh/asterikast/listener.pl > /dev/null 2>&1");
+	system("mysql asterisk -u asteriskuser --password=admin < /salzh/elastix/asterikast/sql/asterikastConferenceManager");
+	system("ln -s /salzh/elastix/asterikast/www/ /var/www/html/konf");
+	system("setsid /salzh/elastix/asterikast/listener.pl > /dev/null 2>&1");
 	print "You can visit http://ip/konf\n";
 }
